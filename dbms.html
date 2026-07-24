@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GarbageMS - Smart Community Waste Management System</title>
+  <!-- Google Fonts & Leaflet OpenSource Maps Engine -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --secondary: #0f172a;
+      --accent: #3b82f6;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --bg-light: #f8fafc;
+      --card-bg: #ffffff;
+      --text-dark: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background-color: var(--bg-light); color: var(--text-dark); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+
+    /* --- RESPONSIVE HEADER & NAVIGATION --- */
+    header {
+      background: var(--secondary);
+      color: white;
+      padding: 1rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .brand-logo { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.25rem; }
+    .brand-logo svg { width: 32px; height: 32px; fill: var(--primary); flex-shrink: 0; }
+    
+    .nav-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; width: auto; }
+    .admin-access-btn {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: #cbd5e1; padding: 0.5rem 0.85rem; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .admin-access-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* --- MAIN LAYOUT & GRID RESPONSIVENESS --- */
+    main { flex: 1; padding: 1.5rem 1rem; max-width: 1280px; margin: 0 auto; width: 100%; }
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* --- UI CARDS & RESPONSIVE BUTTONS --- */
+    .card { background: var(--card-bg); border-radius: var(--radius); padding: 1.25rem; border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 1.25rem; }
+    .btn {
+      background: var(--primary); color: white; border: none; padding: 0.75rem 1.25rem; font-weight: 600;
+      border-radius: 8px; cursor: pointer; transition: background 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none;
+      font-size: 0.9rem; touch-action: manipulation;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #64748b; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-accent { background: var(--accent); }
+    .btn-accent:hover { background: #2563eb; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: var(--danger-hover); }
+    .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+    
+    .action-bar-responsive {
+      display: flex; gap: 0.75rem; margin-bottom: 1.5rem; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    }
+    .action-bar-group { display: flex; gap: 0.75rem; flex-wrap: wrap; width: 100%; }
+
+    /* --- ENTRANCE AUTH CONTAINER --- */
+    .landing-auth-wrapper {
+      max-width: 450px;
+      margin: 1.5rem auto;
+      border: 1px solid var(--border);
+    }
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: white;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+
+    /* --- ALERT MESSAGES --- */
+    .alert-danger {
+      background-color: #fef2f2; border: 1px solid #fecaca; color: var(--danger);
+      padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; display: none; word-break: break-word;
+    }
+    .alert-success {
+      background-color: #ecfdf5; border: 1px solid #a7f3d0; color: var(--primary-hover);
+      padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; display: none; word-break: break-word;
+    }
+
+    /* --- VIRTUAL ID CARD --- */
+    .virtual-id-card {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white; border-radius: 16px; padding: 1.25rem; position: relative; overflow: hidden;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2); margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .id-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    .id-logo { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: var(--primary); }
+    .id-body { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .id-avatar { width: 60px; height: 60px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; border: 2px solid var(--primary); flex-shrink: 0; }
+    .id-details h3 { font-size: 1.1rem; margin-bottom: 0.25rem; word-break: break-word; }
+    .id-details p { font-size: 0.85rem; color: #94a3b8; word-break: break-all; }
+    .id-points { margin-top: 0.5rem; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 0.25rem 0.75rem; border-radius: 20px; display: inline-block; font-size: 0.85rem; font-weight: 600; }
+
+    /* --- MAP & MEDIA RESPONSIVE LAYOUTS --- */
+    #user-map { height: 350px; min-height: 250px; border-radius: var(--radius); border: 1px solid var(--border); margin-top: 1rem; cursor: crosshair; width: 100%; z-index: 1; }
+    .mini-map { height: 180px; border-radius: 8px; border: 1px solid var(--border); margin: 0.5rem 0; width: 100%; z-index: 1; }
+    .image-preview { width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px; margin-top: 1rem; display: none; }
+
+    /* --- NOTIFICATION BADGES & CARDS --- */
+    .notif-badge {
+      background: var(--danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; margin-left: 0.5rem;
+    }
+    .notif-card {
+      background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid var(--danger); padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.85rem;
+    }
+
+    /* --- RESPONSIVE TABLE WRAPPERS & GRID --- */
+    .table-responsive-wrapper {
+      width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 0.75rem;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 500px; }
+    th, td { padding: 0.75rem 0.85rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    th { background: #f1f5f9; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+    
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+    
+    /* --- DASHBOARD STAT CARDS --- */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .stat-card { text-align: center; background: white; padding: 1.25rem 0.75rem; border-radius: var(--radius); border: 1px solid var(--border); }
+    .stat-card h2 { font-size: 1.8rem; color: var(--primary); }
+    .stat-card p { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem; }
+
+    .compare-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+    .compare-box img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; }
+
+    .badge { padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+    .badge-pending { background: #fef3c7; color: #d97706; }
+    .badge-assigned { background: #dbeafe; color: #2563eb; }
+    .badge-completed { background: #d1fae5; color: #059669; }
+
+    /* --- SMALL PRINT PERMANENT HISTORY STYLE --- */
+    .history-card {
+      background: #f1f5f9; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1rem; margin-top: 1.5rem;
+    }
+    .history-card h4 {
+      font-size: 0.85rem; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;
+    }
+    .history-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    .history-table th, .history-table td {
+      font-size: 0.75rem; padding: 0.4rem 0.6rem; border-bottom: 1px solid #cbd5e1; color: #334155;
+    }
+    .history-table th { background: #e2e8f0; color: #475569; }
+
+    /* --- SECURE MODAL POPUP --- */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
+      display: none; justify-content: center; align-items: center; z-index: 1000; padding: 1rem;
+    }
+    .modal-card {
+      background: white; border-radius: var(--radius); padding: 1.5rem;
+      width: 100%; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;
+    }
+
+    /* --- MEDIA QUERY BREAKPOINTS FOR PHONES & TABLETS --- */
+    @media (max-width: 640px) {
+      header { padding: 0.85rem 1rem; }
+      .brand-logo { font-size: 1.1rem; }
+      .nav-actions { width: 100%; justify-content: space-between; }
+      .admin-access-btn { flex: 1; justify-content: center; font-size: 0.78rem; padding: 0.45rem; }
+      main { padding: 1rem 0.75rem; }
+      .card { padding: 1rem; }
+      .action-bar-group { flex-direction: column; }
+      .action-bar-group .btn { width: 100%; }
+      .btn { width: 100%; }
+      #user-map { height: 280px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR HEADER -->
+  <header>
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+      <span>GarbageMS</span>
+    </div>
+    
+    <div class="nav-actions">
+      <button class="admin-access-btn" onclick="showCitizenPanel()">🏠 Citizen Home</button>
+      <button class="admin-access-btn" onclick="openStaffModal()">🔒 Staff & Admin Portal</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ==================================================================== -->
+    <!-- 1. CITIZEN USER PANEL                                                -->
+    <!-- ==================================================================== -->
+    <section id="panel-user" class="panel active">
+      
+      <!-- AUTHENTICATION FORM LANDING -->
+      <div id="user-auth-view" class="card landing-auth-wrapper">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div class="brand-logo" style="justify-content: center; color: var(--primary); margin-bottom: 0.5rem;">
+            <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+            <span>GarbageMS Portal</span>
+          </div>
+          <h2 id="auth-title">Citizen Registration</h2>
+          <p style="color: var(--text-muted); font-size: 0.875rem;" id="auth-sub">Create your account to be permanently recorded in the supervisor system</p>
+        </div>
+
+        <div id="user-auth-error" class="alert-danger"></div>
+        
+        <form id="auth-form" onsubmit="handleAuth(event)">
+          <div class="form-group" id="name-group">
+            <label>Full Name</label>
+            <input type="text" id="auth-name" required placeholder="John Doe">
+          </div>
+          <div class="form-group">
+            <label>Email Address (@gmail.com)</label>
+            <input type="email" id="auth-email" required placeholder="citizen@gmail.com">
+          </div>
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <label style="margin-bottom: 0;">Password</label>
+              <a href="#" id="forgot-link-inline" style="font-size: 0.8rem; color: var(--accent); font-weight: 600; display: none;" onclick="openForgotPasswordModal()">Forgot Password?</a>
+            </div>
+            <input type="password" id="auth-password" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;" id="auth-submit-btn">Create Account & Save ID</button>
+        </form>
+
+        <p style="text-align: center; font-size: 0.85rem; margin-top: 1.25rem; color: var(--text-muted);">
+          <span id="auth-toggle-msg">Already registered?</span> 
+          <a href="#" style="color: var(--primary); font-weight: 600;" onclick="toggleAuthMode()" id="auth-toggle-link">Login</a>
+        </p>
+      </div>
+
+      <!-- INSIDE USER DASHBOARD -->
+      <div id="user-dashboard-view" style="display: none;">
+        
+        <!-- Virtual ID Card -->
+        <div class="virtual-id-card">
+          <div class="id-header">
+            <div class="id-logo">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+              <span>GarbageMS ID Card</span>
+            </div>
+            <span style="font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px;">REGISTERED CITIZEN</span>
+          </div>
+          <div class="id-body">
+            <div class="id-avatar">👤</div>
+            <div class="id-details">
+              <h3 id="id-card-name">User Name</h3>
+              <p id="id-card-email">user@gmail.com</p>
+              <p id="id-card-id" style="font-family: monospace; color: var(--primary); margin-top: 2px;">ID: GMS-XXXXX</p>
+              <div class="id-points">Reward Balance: <span id="id-card-points">0</span> Points</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Options Bar -->
+        <div class="action-bar-responsive">
+          <div class="action-bar-group">
+            <button class="btn btn-accent" onclick="toggleUserSubView('info')">📋 My History & Info</button>
+            <button class="btn" onclick="toggleUserSubView('camera')">📷 Report Waste Location</button>
+          </div>
+          <button class="btn btn-secondary" onclick="logoutCitizen()">Log Out</button>
+        </div>
+
+        <!-- Subview 1: User Info & History -->
+        <div id="user-sub-info" class="card">
+          <h3>My Submitted Waste Reports</h3>
+          <div class="table-responsive-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Report ID</th>
+                  <th>Date & Time Uploaded</th>
+                  <th>Pin Coordinates</th>
+                  <th>Status</th>
+                  <th>Reward Status</th>
+                </tr>
+              </thead>
+              <tbody id="user-reports-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Subview 2: Interactive Camera & Pinpoint Mapping Upload -->
+        <div id="user-sub-camera" class="card" style="display: none;">
+          <h3>Pinpoint Waste Location & Submit</h3>
+          <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">Upload photo, then click directly on the map to drop or move your exact waste location pin.</p>
+
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <input type="file" id="waste-image-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('waste-image-input').click()">📸 Snap / Upload Image</button>
+            <button class="btn" onclick="captureGPSCoordinates()">📍 Auto-Locate My GPS</button>
+          </div>
+
+          <img id="image-preview" class="image-preview" alt="Uploaded Waste Preview">
+          
+          <div id="coordinates-display" style="margin-top: 1rem; font-weight: 600; font-size: 0.875rem; color: var(--accent); word-break: break-all;">
+            📍 Pinpoint Coordinates: Click map below to set pin location
+          </div>
+
+          <!-- Interactive Pinpoint Map -->
+          <div id="user-map"></div>
+
+          <button class="btn" style="width: 100%; margin-top: 1.5rem;" onclick="submitWasteReport()">Submit Report & Notify Supervisor</button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- 2. SUPERVISOR PANEL                                                  -->
+    <!-- ==================================================================== -->
+    <section id="panel-supervisor" class="panel">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <h2>Supervisor Control Hub <span id="supervisor-notif-count" class="notif-badge" style="display:none;">0 New</span></h2>
+          <span class="badge badge-assigned">AUTHENTICATED SUPERVISOR</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.5rem;">Oversee citizens, manage registered users, view pinned maps, and dispatch cleaners.</p>
+      </div>
+
+      <!-- REAL-TIME NOTIFICATIONS BOARD -->
+      <div id="supervisor-notif-board" class="card" style="display:none; background:#fff5f5; border-color:#fecaca;">
+        <h3 style="color:var(--danger); margin-bottom:0.75rem;">🔔 Live Incoming Waste Alerts</h3>
+        <div id="supervisor-notif-list"></div>
+      </div>
+
+      <!-- DIRECTORIES GRID -->
+      <div class="grid-2">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3>👥 Citizen Directory</h3>
+              <span style="font-size: 0.85rem; color: var(--text-muted);" id="citizen-count-label">Total Users: 0</span>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="removeAllCitizens()">🗑️ Purge All</button>
+          </div>
+          <div class="table-responsive-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Points</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="supervisor-citizen-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3>🧹 Cleaners Directory</h3>
+              <span style="font-size: 0.85rem; color: var(--text-muted);" id="cleaner-count-label">Total Cleaners: 0</span>
+            </div>
+            <button class="btn btn-accent btn-sm" onclick="openAddCleanerModal()">➕ Add Staff</button>
+          </div>
+          <div class="table-responsive-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cleaner ID</th>
+                  <th>Staff Name</th>
+                  <th>Region</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="supervisor-cleaner-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>1. Incoming Reports (Dispatch Queue)</h3>
+          <div id="supervisor-queue" style="margin-top: 0.75rem;"></div>
+        </div>
+        <div class="card">
+          <h3>2. Cleaner Submissions (Audit Queue)</h3>
+          <div id="supervisor-review-queue" style="margin-top: 0.75rem;"></div>
+        </div>
+      </div>
+
+      <!-- PERMANENT WORK HISTORY ARCHIVE (SUPERVISOR VIEW) -->
+      <div class="history-card">
+        <h4>📜 Permanent Work History Log (Completed Tasks)</h4>
+        <div class="table-responsive-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Task ID</th>
+                <th>Citizen Reporter</th>
+                <th>Assigned Cleaner</th>
+                <th>Coordinates</th>
+                <th>Upload Time</th>
+                <th>Points Awarded</th>
+                <th>Final Status</th>
+              </tr>
+            </thead>
+            <tbody id="supervisor-history-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- 3. CLEANER PANEL                                                     -->
+    <!-- ==================================================================== -->
+    <section id="panel-cleaner" class="panel">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <h2>Field Cleaner Dispatch Unit</h2>
+          <span class="badge badge-completed">FIELD STAFF</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Access citizen map pin locations, navigate to cleanup sites, and submit completion proof.</p>
+      </div>
+
+      <div class="card">
+        <h3>🧹 Registered Cleaner Staff Roster</h3>
+        <div class="table-responsive-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Cleaner ID</th>
+                <th>Staff / Squad Name</th>
+                <th>Assigned Region</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="cleaners-roster-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Your Assigned Duty List</h3>
+        <div id="cleaner-task-list" style="margin-top: 1rem;"></div>
+      </div>
+
+      <!-- PERMANENT WORK HISTORY ARCHIVE (CLEANER VIEW) -->
+      <div class="history-card">
+        <h4>📜 Cleaner Completed Job Records</h4>
+        <div class="table-responsive-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Task ID</th>
+                <th>Target GPS Pin</th>
+                <th>Assigned Cleaner</th>
+                <th>Submitted At</th>
+                <th>Reward Status</th>
+              </tr>
+            </thead>
+            <tbody id="cleaner-history-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- 4. SUPERMAIN / SUPER ADMIN PANEL                                     -->
+    <!-- ==================================================================== -->
+    <section id="panel-superadmin" class="panel">
+      <div class="card" style="background: linear-gradient(135deg, #0f172a, #1e1b4b); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <h2>SuperMain Executive Oversight</h2>
+          <span class="badge" style="background: #6366f1; color: white;">SUPER ADMIN</span>
+        </div>
+        <p style="color: #a5b4fc; font-size: 0.875rem; margin-top: 0.25rem;">Global System Analytics, Supervisor Performance Audits, and Reward Ledger Integrity.</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h2 id="stat-total-reports">0</h2>
+          <p>Total Waste Reports</p>
+        </div>
+        <div class="stat-card">
+          <h2 id="stat-completed">0</h2>
+          <p>Cleanups Completed</p>
+        </div>
+        <div class="stat-card">
+          <h2 id="stat-user-points">0</h2>
+          <p>Citizen Points</p>
+        </div>
+        <div class="stat-card">
+          <h2 id="stat-cleaner-points">0</h2>
+          <p>Cleaner Points</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Master System Live Table</h3>
+        <div class="table-responsive-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Task ID</th>
+                <th>Citizen (Points)</th>
+                <th>Upload Timestamp</th>
+                <th>GPS Pin Coordinates</th>
+                <th>Assigned Cleaner</th>
+                <th>Supervisor Status</th>
+              </tr>
+            </thead>
+            <tbody id="admin-audit-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PERMANENT MASTER HISTORY AUDIT LEDGER -->
+      <div class="history-card">
+        <h4>📜 Master System Archived History Log (All Completed Jobs)</h4>
+        <div class="table-responsive-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Task ID</th>
+                <th>Citizen ID / Name</th>
+                <th>Cleaner Staff</th>
+                <th>GPS Pin</th>
+                <th>Timestamp</th>
+                <th>User Pts</th>
+                <th>Cleaner Pts</th>
+                <th>Verification State</th>
+              </tr>
+            </thead>
+            <tbody id="admin-history-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- RESTRICTED STAFF ACCESS MODAL -->
+  <div class="modal-overlay" id="staff-modal">
+    <div class="modal-card">
+      <h3 style="margin-bottom: 0.25rem;">Restricted Panel Access</h3>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">Select target role and enter security password.</p>
+      
+      <form onsubmit="handleStaffLogin(event)">
+        <div class="form-group">
+          <label>Target Restricted Panel</label>
+          <select id="staff-role-select">
+            <option value="supervisor">Supervisor Panel</option>
+            <option value="cleaner">Cleaner Panel</option>
+            <option value="superadmin">SuperMain Panel</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Access Password</label>
+          <input type="password" id="staff-password" required placeholder="Enter password">
+        </div>
+
+        <p id="modal-error-msg" style="color: var(--danger); font-size: 0.85rem; margin-bottom: 1rem; display: none; font-weight: 600;"></p>
+
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeStaffModal()">Cancel</button>
+          <button type="submit" class="btn">Unlock Panel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD NEW CLEANER MODAL -->
+  <div class="modal-overlay" id="add-cleaner-modal">
+    <div class="modal-card">
+      <h3 style="margin-bottom: 0.25rem;">🧹 Register New Cleaner Staff</h3>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">Create a cleaner staff profile to dispatch garbage cleanup assignments.</p>
+
+      <form onsubmit="addNewCleanerStaff(event)">
+        <div class="form-group">
+          <label>Cleaner Name / Squad Name</label>
+          <input type="text" id="new-cleaner-name" required placeholder="e.g. Cleaner Squad F (Alex Unit)">
+        </div>
+        <div class="form-group">
+          <label>Assigned Operating Region</label>
+          <input type="text" id="new-cleaner-region" required placeholder="e.g. Lakeside Ward 6">
+        </div>
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeAddCleanerModal()">Cancel</button>
+          <button type="submit" class="btn">Register Cleaner</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD MODAL -->
+  <div class="modal-overlay" id="forgot-modal">
+    <div class="modal-card">
+      <h3 style="margin-bottom: 0.25rem;">🔐 Password Recovery</h3>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">Verify your registered Gmail account to receive a 1-step verification code.</p>
+
+      <div id="forgot-step-1">
+        <form onsubmit="sendGmailVerificationCode(event)">
+          <div class="form-group">
+            <label>Registered Gmail Address</label>
+            <input type="email" id="forgot-email" required placeholder="alex@gmail.com">
+          </div>
+          <p id="forgot-error-msg-1" style="color: var(--danger); font-size: 0.85rem; margin-bottom: 1rem; display: none; font-weight: 600;"></p>
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeForgotPasswordModal()">Cancel</button>
+            <button type="submit" class="btn">Send Code</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="forgot-step-2" style="display: none;">
+        <div id="gmail-sim-banner" class="alert-success" style="display: block; margin-bottom: 1.25rem;">
+          📩 <strong>Gmail Inbox Alert:</strong> Verification code dispatched!
+        </div>
+
+        <form onsubmit="verifyCodeAndResetPassword(event)">
+          <div class="form-group">
+            <label>6-Digit Gmail Verification Code</label>
+            <input type="text" id="forgot-code" required placeholder="e.g. 849201" maxlength="6" style="letter-spacing: 4px; font-weight: 700; text-align: center; font-size: 1.2rem;">
+          </div>
+          <div class="form-group">
+            <label>New Password</label>
+            <input type="password" id="forgot-new-password" required placeholder="Enter new password">
+          </div>
+          <p id="forgot-error-msg-2" style="color: var(--danger); font-size: 0.85rem; margin-bottom: 1rem; display: none; font-weight: 600;"></p>
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeForgotPasswordModal()">Cancel</button>
+            <button type="submit" class="btn">Verify & Update</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    /* ===================================================================
+       1. GMAIL VALIDATION ENGINE
+       =================================================================== */
+    function validateGmailAddress(email) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+
+      if (!emailRegex.test(email)) {
+        return {
+          valid: false,
+          reason: "Please enter a valid Gmail address ending strictly with @gmail.com"
+        };
+      }
+
+      const localPart = email.split('@')[0];
+      const fakePrefixes = ['test', 'fake', 'admin', '12345', 'asdf', 'noemail', 'temp', 'dummy', 'junk'];
+      
+      if (fakePrefixes.includes(localPart.toLowerCase()) || localPart.length < 5) {
+        return {
+          valid: false,
+          reason: "This Gmail address appears to be invalid or too short."
+        };
+      }
+
+      return { valid: true };
+    }
+
+    /* ===================================================================
+       2. PERSISTENT STORAGE ENGINE & STATE
+       =================================================================== */
+    let isSignUp = true;
+    let currentUser = null;
+    let capturedCoordinates = null;
+    let uploadedBase64Image = null;
+    let userMap = null;
+    let userMarker = null;
+    let mapInstances = {};
+    let currentRecoveryOTP = null;
+    let recoveryUserEmail = null;
+
+    const defaultCleanersList = [
+      { id: 'CLN-101', name: 'Cleaner Squad A (A)', region: 'North Zone' },
+      { id: 'CLN-102', name: 'Cleaner Squad B (B)', region: 'South Zone' },
+      { id: 'CLN-103', name: 'Cleaner Squad C (C)', region: 'East Zone' },
+      { id: 'CLN-104', name: 'Cleaner Squad D (D)', region: 'West Zone' },
+      { id: 'CLN-105', name: 'Cleaner Squad E (E)', region: 'Central City' }
+    ];
+
+    function loadDB() {
+      const savedDB = localStorage.getItem('GarbageMS_DB');
+      if (savedDB) {
+        let parsed = JSON.parse(savedDB);
+        if(!parsed.cleaners || parsed.cleaners.length < 5) {
+          parsed.cleaners = defaultCleanersList;
+        }
+        return parsed;
+      } else {
+        const initialDB = {
+          users: [
+            { id: 'GMS-84920', name: 'Alex Johnson', email: 'alex@gmail.com', password: 'user123', points: 0, registeredAt: '2026-07-20' }
+          ],
+          cleaners: defaultCleanersList,
+          tasks: [],
+          notifications: []
+        };
+        localStorage.setItem('GarbageMS_DB', JSON.stringify(initialDB));
+        return initialDB;
+      }
+    }
+
+    function saveDB() {
+      try {
+        localStorage.setItem('GarbageMS_DB', JSON.stringify(db));
+      } catch (e) {
+        alert("⚠️ Local storage limit reached! Try clearing existing tasks or uploading smaller images.");
+      }
+    }
+
+    let db = loadDB();
+
+    /* ===================================================================
+       3. PANEL ROUTING & AUTH SECURITY GATEWAY
+       =================================================================== */
+    function showCitizenPanel() {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-user').classList.add('active');
+      if (currentUser) {
+        renderUserDashboard();
+      } else {
+        document.getElementById('user-auth-view').style.display = 'block';
+        document.getElementById('user-dashboard-view').style.display = 'none';
+      }
+    }
+
+    function openStaffModal() {
+      document.getElementById('modal-error-msg').style.display = 'none';
+      document.getElementById('staff-password').value = '';
+      document.getElementById('staff-modal').style.display = 'flex';
+    }
+
+    function closeStaffModal() {
+      document.getElementById('staff-modal').style.display = 'none';
+    }
+
+    function handleStaffLogin(e) {
+      e.preventDefault();
+      const role = document.getElementById('staff-role-select').value;
+      const pass = document.getElementById('staff-password').value;
+      const errorMsg = document.getElementById('modal-error-msg');
+
+      let isValid = false;
+
+      if (role === 'cleaner' && pass === 'cleaners123') isValid = true;
+      else if (role === 'supervisor' && pass === 'supervisors123') isValid = true;
+      else if (role === 'superadmin' && pass === '123') isValid = true;
+
+      if (isValid) {
+        closeStaffModal();
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(`panel-${role}`).classList.add('active');
+
+        if (role === 'supervisor') renderSupervisorPanel();
+        if (role === 'cleaner') renderCleanerPanel();
+        if (role === 'superadmin') renderSuperAdminPanel();
+      } else {
+        errorMsg.innerText = "Invalid password for selected panel!";
+        errorMsg.style.display = 'block';
+      }
+    }
+
+    /* ===================================================================
+       4. SUPERVISOR CITIZEN REMOVAL & CLEANER ADD ENGINE
+       =================================================================== */
+    function removeSingleCitizen(userId) {
+      if (confirm(`Are you sure you want to delete citizen account ${userId}?`)) {
+        db.users = db.users.filter(u => u.id !== userId);
+        
+        if (currentUser && currentUser.id === userId) {
+          logoutCitizen();
+        }
+
+        saveDB();
+        renderSupervisorPanel();
+        alert(`Citizen ID ${userId} removed successfully.`);
+      }
+    }
+
+    function removeAllCitizens() {
+      if (db.users.length === 0) {
+        alert("There are no registered citizen accounts to remove.");
+        return;
+      }
+
+      if (confirm("⚠️ WARNING: Are you sure you want to remove ALL registered citizen accounts? This action cannot be undone.")) {
+        db.users = [];
+        logoutCitizen();
+        saveDB();
+        renderSupervisorPanel();
+        alert("✔ All citizen accounts have been purged from the system.");
+      }
+    }
+
+    function openAddCleanerModal() {
+      document.getElementById('new-cleaner-name').value = '';
+      document.getElementById('new-cleaner-region').value = '';
+      document.getElementById('add-cleaner-modal').style.display = 'flex';
+    }
+
+    function closeAddCleanerModal() {
+      document.getElementById('add-cleaner-modal').style.display = 'none';
+    }
+
+    function addNewCleanerStaff(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-cleaner-name').value.trim();
+      const region = document.getElementById('new-cleaner-region').value.trim();
+
+      const newId = 'CLN-' + (100 + db.cleaners.length + 1);
+
+      const newCleanerObj = {
+        id: newId,
+        name: name,
+        region: region
+      };
+
+      db.cleaners.push(newCleanerObj);
+      saveDB();
+
+      alert(`✔ ${name} successfully registered with ID ${newId}! They are now available in the cleaners directory and dispatch queue.`);
+      closeAddCleanerModal();
+      renderSupervisorPanel();
+    }
+
+    /* ===================================================================
+       5. CITIZEN AUTHENTICATION & GMAIL CHECK
+       =================================================================== */
+    function toggleAuthMode() {
+      isSignUp = !isSignUp;
+      document.getElementById('user-auth-error').style.display = 'none';
+      document.getElementById('auth-title').innerText = isSignUp ? "Citizen Registration" : "Citizen Login";
+      document.getElementById('auth-sub').innerText = isSignUp ? "Create your account to be permanently recorded in the supervisor system" : "Log in with your saved GarbageMS email and password";
+      document.getElementById('name-group').style.display = isSignUp ? "block" : "none";
+      document.getElementById('forgot-link-inline').style.display = isSignUp ? "none" : "block";
+      document.getElementById('auth-name').required = isSignUp;
+      document.getElementById('auth-submit-btn').innerText = isSignUp ? "Create Account & Save ID" : "Login & Access Dashboard";
+      document.getElementById('auth-toggle-msg').innerText = isSignUp ? "Already registered?" : "Don't have a GarbageMS ID yet?";
+      document.getElementById('auth-toggle-link').innerText = isSignUp ? "Login" : "Sign Up Now";
+    }
+
+    function handleAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const name = isSignUp ? document.getElementById('auth-name').value.trim() : "";
+      const errorAlert = document.getElementById('user-auth-error');
+
+      errorAlert.style.display = 'none';
+
+      const check = validateGmailAddress(email);
+      if (!check.valid) {
+        errorAlert.innerText = `❌ ${check.reason}`;
+        errorAlert.style.display = 'block';
+        return;
+      }
+
+      let existingUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+      if (isSignUp) {
+        if (existingUser) {
+          errorAlert.innerHTML = `⚠️ An account with this email already exists! <a href="#" style="color:var(--danger); font-weight:700;" onclick="toggleAuthMode()">Please Login</a>.`;
+          errorAlert.style.display = 'block';
+          return;
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        existingUser = {
+          id: 'GMS-' + Math.floor(10000 + Math.random() * 90000),
+          name: name || 'Citizen User',
+          email: email,
+          password: password,
+          points: 0,
+          registeredAt: today
+        };
+        db.users.push(existingUser);
+        saveDB();
+      } else {
+        if (!existingUser || existingUser.password !== password) {
+          errorAlert.innerHTML = `❌ Incorrect Email or Password! <a href="#" style="color: var(--danger); font-weight: 700; text-decoration: underline;" onclick="openForgotPasswordModal()">Forgot Password?</a>`;
+          errorAlert.style.display = 'block';
+          return;
+        }
+      }
+
+      currentUser = existingUser;
+      
+      document.getElementById('user-auth-view').style.display = 'none';
+      document.getElementById('user-dashboard-view').style.display = 'block';
+
+      document.getElementById('id-card-name').innerText = currentUser.name;
+      document.getElementById('id-card-email').innerText = currentUser.email;
+      document.getElementById('id-card-id').innerText = `ID: ${currentUser.id}`;
+      document.getElementById('id-card-points').innerText = currentUser.points;
+
+      renderUserDashboard();
+    }
+
+    function logoutCitizen() {
+      currentUser = null;
+      document.getElementById('user-dashboard-view').style.display = 'none';
+      document.getElementById('user-auth-view').style.display = 'block';
+      document.getElementById('user-auth-error').style.display = 'none';
+      document.getElementById('auth-form').reset();
+    }
+
+    /* ===================================================================
+       6. FORGOT PASSWORD RECOVERY
+       =================================================================== */
+    function openForgotPasswordModal() {
+      const emailFieldVal = document.getElementById('auth-email').value;
+      if (emailFieldVal) {
+        document.getElementById('forgot-email').value = emailFieldVal;
+      }
+      document.getElementById('forgot-error-msg-1').style.display = 'none';
+      document.getElementById('forgot-error-msg-2').style.display = 'none';
+      document.getElementById('forgot-step-1').style.display = 'block';
+      document.getElementById('forgot-step-2').style.display = 'none';
+      document.getElementById('forgot-modal').style.display = 'flex';
+    }
+
+    function closeForgotPasswordModal() {
+      document.getElementById('forgot-modal').style.display = 'none';
+    }
+
+    function sendGmailVerificationCode(e) {
+      e.preventDefault();
+      const email = document.getElementById('forgot-email').value.trim();
+      const errLabel = document.getElementById('forgot-error-msg-1');
+
+      const check = validateGmailAddress(email);
+      if (!check.valid) {
+        errLabel.innerText = `❌ ${check.reason}`;
+        errLabel.style.display = 'block';
+        return;
+      }
+
+      const existingUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+      if (!existingUser) {
+        errLabel.innerText = "❌ No citizen account registered with this Gmail address!";
+        errLabel.style.display = 'block';
+        return;
+      }
+
+      currentRecoveryOTP = Math.floor(100000 + Math.random() * 900000).toString();
+      recoveryUserEmail = email;
+
+      errLabel.style.display = 'none';
+      document.getElementById('forgot-step-1').style.display = 'none';
+      document.getElementById('forgot-step-2').style.display = 'block';
+
+      alert(`📩 Gmail 1-Step Verification Dispatched!\n\nTo: ${email}\nVerification Code: ${currentRecoveryOTP}\n\nPlease enter this 6-digit code to complete password recovery.`);
+    }
+
+    function verifyCodeAndResetPassword(e) {
+      e.preventDefault();
+      const enteredCode = document.getElementById('forgot-code').value.trim();
+      const newPassword = document.getElementById('forgot-new-password').value;
+      const errLabel = document.getElementById('forgot-error-msg-2');
+
+      if (enteredCode !== currentRecoveryOTP) {
+        errLabel.innerText = "❌ Invalid Verification Code. Please check your Gmail!";
+        errLabel.style.display = 'block';
+        return;
+      }
+
+      const userObj = db.users.find(u => u.email.toLowerCase() === recoveryUserEmail.toLowerCase());
+      if (userObj) {
+        userObj.password = newPassword;
+        saveDB();
+      }
+
+      alert("✔ Password successfully updated! You can now login with your new credentials.");
+      closeForgotPasswordModal();
+      
+      if (isSignUp) toggleAuthMode();
+      document.getElementById('auth-email').value = recoveryUserEmail;
+      document.getElementById('auth-password').value = newPassword;
+      document.getElementById('user-auth-error').style.display = 'none';
+    }
+
+    function toggleUserSubView(view) {
+      document.getElementById('user-sub-info').style.display = (view === 'info') ? 'block' : 'none';
+      document.getElementById('user-sub-camera').style.display = (view === 'camera') ? 'block' : 'none';
+      if(view === 'camera') {
+        setTimeout(initUserMap, 100);
+      }
+    }
+
+    /* Client-Side Canvas Image Compression to avoid LocalStorage Quota Overflows */
+    function compressImageFile(file, callback) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxDim = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Return compressed JPEG data URL at 70% quality
+          callback(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        compressImageFile(file, function(compressedBase64) {
+          uploadedBase64Image = compressedBase64;
+          const imgPreview = document.getElementById('image-preview');
+          imgPreview.src = uploadedBase64Image;
+          imgPreview.style.display = 'block';
+        });
+      }
+    }
+
+    /* ===================================================================
+       7. PINPOINT MAP & GEOLOCATION (PATCHED LEAFLET RE-INITIALIZATION)
+       =================================================================== */
+    function initUserMap() {
+      if (userMap) {
+        userMap.remove();
+        userMap = null;
+        userMarker = null;
+      }
+
+      const defaultLat = 28.2096;
+      const defaultLng = 83.9856;
+
+      userMap = L.map('user-map').setView([defaultLat, defaultLng], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(userMap);
+
+      setMapPin(defaultLat, defaultLng, "Default Location (Click anywhere on map to move pin)");
+
+      userMap.on('click', function(e) {
+        const clickedLat = e.latlng.lat.toFixed(6);
+        const clickedLng = e.latlng.lng.toFixed(6);
+        setMapPin(clickedLat, clickedLng, "Custom Selected Waste Location");
+      });
+      
+      setTimeout(() => { userMap.invalidateSize(); }, 200);
+    }
+
+    function setMapPin(lat, lng, label) {
+      capturedCoordinates = { lat, lng };
+      document.getElementById('coordinates-display').innerText = `📍 Pinpoint Coordinates Set: Lat ${lat}, Lng ${lng}`;
+
+      if (userMarker) {
+        userMarker.setLatLng([lat, lng]);
+      } else {
+        userMarker = L.marker([lat, lng], { draggable: true }).addTo(userMap);
+        userMarker.on('dragend', function(event) {
+          const position = userMarker.getLatLng();
+          const dragLat = position.lat.toFixed(6);
+          const dragLng = position.lng.toFixed(6);
+          capturedCoordinates = { lat: dragLat, lng: dragLng };
+          document.getElementById('coordinates-display').innerText = `📍 Pinpoint Coordinates Set: Lat ${dragLat}, Lng ${dragLng}`;
+        });
+      }
+      userMarker.bindPopup(`<b>${label}</b><br>Lat: ${lat}, Lng: ${lng}`).openPopup();
+    }
+
+    function captureGPSCoordinates() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const lat = position.coords.latitude.toFixed(6);
+          const lng = position.coords.longitude.toFixed(6);
+          if (userMap) {
+            userMap.setView([lat, lng], 16);
+            setMapPin(lat, lng, "Your GPS Location");
+          }
+        }, () => {
+          alert('GPS access denied or unavailable. You can click directly on the map to pinpoint location!');
+        });
+      }
+    }
+
+    function renderTaskMiniMap(elementId, lat, lng, label) {
+      setTimeout(() => {
+        const mapContainer = document.getElementById(elementId);
+        if (!mapContainer) return;
+        
+        if (mapInstances[elementId]) {
+          mapInstances[elementId].remove();
+        }
+
+        const m = L.map(elementId, { zoomControl: false, dragging: false }).setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OSM'
+        }).addTo(m);
+
+        L.marker([lat, lng]).addTo(m).bindPopup(`<b>${label}</b><br>Lat: ${lat}, Lng: ${lng}`).openPopup();
+        mapInstances[elementId] = m;
+        m.invalidateSize();
+      }, 150);
+    }
+
+    /* ===================================================================
+       8. WASTE REPORT SUBMISSION & NOTIFICATIONS
+       =================================================================== */
+    function submitWasteReport() {
+      if (!uploadedBase64Image) {
+        alert('Please snap or upload a picture of the waste bulk first.');
+        return;
+      }
+      if (!capturedCoordinates) {
+        alert('Please click on the map to set a location pin.');
+        return;
+      }
+
+      const now = new Date();
+      const formattedTimestamp = now.getFullYear() + '-' + 
+        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(now.getDate()).padStart(2, '0') + ' ' + 
+        String(now.getHours()).padStart(2, '0') + ':' + 
+        String(now.getMinutes()).padStart(2, '0');
+
+      const taskId = 'TASK-' + Math.floor(1000 + Math.random() * 9000);
+
+      const newTask = {
+        id: taskId,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        beforeImg: uploadedBase64Image,
+        afterImg: null,
+        coords: capturedCoordinates,
+        uploadedAt: formattedTimestamp,
+        status: 'Submitted',
+        assignedCleaner: null,
+        userPointsAwarded: false,
+        cleanerPointsAwarded: false
+      };
+
+      if(!db.notifications) db.notifications = [];
+      db.notifications.unshift({
+        id: 'NTF-' + Date.now(),
+        taskId: taskId,
+        message: `New bulk waste report uploaded by ${currentUser.name} (${currentUser.id})`,
+        timestamp: formattedTimestamp,
+        read: false
+      });
+
+      db.tasks.push(newTask);
+      saveDB();
+      
+      alert(`Report ${newTask.id} submitted on ${formattedTimestamp}! Location shared with Supervisor.`);
+      
+      uploadedBase64Image = null;
+      document.getElementById('image-preview').style.display = 'none';
+      toggleUserSubView('info');
+      renderUserDashboard();
+    }
+
+    function renderUserDashboard() {
+      if (!currentUser) return;
+      document.getElementById('id-card-points').innerText = currentUser.points;
+      const tableBody = document.getElementById('user-reports-table');
+      tableBody.innerHTML = '';
+
+      const userTasks = db.tasks.filter(t => t.userId === currentUser.id);
+      if (userTasks.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No waste reports submitted yet.</td></tr>`;
+        return;
+      }
+
+      userTasks.forEach(t => {
+        tableBody.innerHTML += `
+          <tr>
+            <td><strong>${t.id}</strong></td>
+            <td>${t.uploadedAt || 'N/A'}</td>
+            <td>📍 ${t.coords.lat}, ${t.coords.lng}</td>
+            <td><span class="badge ${t.status === 'Verified' ? 'badge-completed' : 'badge-pending'}">${t.status}</span></td>
+            <td>${t.userPointsAwarded ? '+5 Points' : 'Pending Verification'}</td>
+          </tr>
+        `;
+      });
+    }
+
+    /* ===================================================================
+       9. SUPERVISOR PANEL
+       =================================================================== */
+    function renderSupervisorPanel() {
+      const notifBoard = document.getElementById('supervisor-notif-board');
+      const notifList = document.getElementById('supervisor-notif-list');
+      const notifBadge = document.getElementById('supervisor-notif-count');
+
+      const unreadNotifs = (db.notifications || []).filter(n => !n.read);
+      if (unreadNotifs.length > 0) {
+        notifBadge.innerText = `${unreadNotifs.length} New`;
+        notifBadge.style.display = 'inline-block';
+        notifBoard.style.display = 'block';
+        notifList.innerHTML = unreadNotifs.map(n => `
+          <div class="notif-card">
+            <strong>🔔 ${n.message}</strong><br>
+            <span style="color:var(--text-muted); font-size:0.75rem;">🕒 Upload Timestamp: ${n.timestamp}</span>
+          </div>
+        `).join('');
+      } else {
+        notifBadge.style.display = 'none';
+        notifBoard.style.display = 'none';
+      }
+
+      const citizenTable = document.getElementById('supervisor-citizen-table');
+      document.getElementById('citizen-count-label').innerText = `Total Users: ${db.users.length}`;
+      citizenTable.innerHTML = '';
+
+      if (db.users.length === 0) {
+        citizenTable.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No citizens registered in system yet.</td></tr>`;
+      } else {
+        db.users.forEach(user => {
+          citizenTable.innerHTML += `
+            <tr>
+              <td><strong style="font-family: monospace; color: var(--primary);">${user.id}</strong></td>
+              <td>${user.name}</td>
+              <td>${user.email}</td>
+              <td><span style="font-weight:700; color:var(--primary);">${user.points} Pts</span></td>
+              <td>
+                <button class="btn btn-danger btn-sm" style="padding:2px 6px; font-size:0.75rem;" onclick="removeSingleCitizen('${user.id}')">🗑️ Remove</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      const cleanerTable = document.getElementById('supervisor-cleaner-table');
+      document.getElementById('cleaner-count-label').innerText = `Total Cleaners: ${db.cleaners.length}`;
+      cleanerTable.innerHTML = '';
+
+      if (db.cleaners.length === 0) {
+        cleanerTable.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">No cleaners registered yet.</td></tr>`;
+      } else {
+        db.cleaners.forEach(cleaner => {
+          cleanerTable.innerHTML += `
+            <tr>
+              <td><strong style="font-family: monospace; color: var(--primary);">${cleaner.id}</strong></td>
+              <td>${cleaner.name}</td>
+              <td>${cleaner.region}</td>
+              <td><span class="badge badge-completed">ACTIVE</span></td>
+            </tr>
+          `;
+        });
+      }
+
+      const queueContainer = document.getElementById('supervisor-queue');
+      const reviewContainer = document.getElementById('supervisor-review-queue');
+      queueContainer.innerHTML = '';
+      reviewContainer.innerHTML = '';
+
+      const pendingTasks = db.tasks.filter(t => t.status === 'Submitted');
+      if (pendingTasks.length === 0) {
+        queueContainer.innerHTML = `<p style="color:var(--text-muted); font-size:0.875rem;">No new incoming waste reports.</p>`;
+      } else {
+        pendingTasks.forEach(t => {
+          const mapId = `sup-map-${t.id}`;
+          const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${t.coords.lat},${t.coords.lng}`;
+
+          queueContainer.innerHTML += `
+            <div style="border:1px solid var(--border); padding:1rem; border-radius:8px; margin-bottom:1rem;">
+              <p><strong>Report:</strong> ${t.id} by ${t.userName}</p>
+              <p style="font-size:0.8rem; color:var(--text-muted);">🕒 Uploaded At: ${t.uploadedAt}</p>
+              <p style="font-size:0.85rem; color:var(--accent); font-weight:600; margin-top:2px;">📍 Pin Coordinates: ${t.coords.lat}, ${t.coords.lng}</p>
+              
+              <div id="${mapId}" class="mini-map"></div>
+              <a href="${gmapsUrl}" target="_blank" class="btn btn-secondary" style="width:100%; font-size:0.75rem; padding:0.4rem; margin-bottom:0.5rem;">🗺️ Open in Google Maps</a>
+
+              <img src="${t.beforeImg}" style="width:100%; height:130px; object-fit:cover; border-radius:6px; margin:0.5rem 0;">
+              
+              <label style="font-size:0.8rem; font-weight:600;">Select Cleaner Staff to Dispatch (${db.cleaners.length} Available):</label>
+              <select id="cleaner-select-${t.id}" style="width:100%; padding:0.5rem; margin-top:0.25rem; border-radius:6px; border:1px solid var(--border);">
+                ${db.cleaners.map(c => `<option value="${c.id}">${c.name} (${c.id}) - ${c.region}</option>`).join('')}
+              </select>
+              <button class="btn" style="width:100%; margin-top:0.75rem;" onclick="assignTaskToCleaner('${t.id}')">Dispatch Task & Share Location</button>
+            </div>
+          `;
+
+          renderTaskMiniMap(mapId, t.coords.lat, t.coords.lng, `User Pin: ${t.id}`);
+        });
+      }
+
+      const completedTasks = db.tasks.filter(t => t.status === 'Cleaning Completed');
+      if (completedTasks.length === 0) {
+        reviewContainer.innerHTML = `<p style="color:var(--text-muted); font-size:0.875rem;">No cleanup completions waiting for review.</p>`;
+      } else {
+        completedTasks.forEach(t => {
+          reviewContainer.innerHTML += `
+            <div style="border:1px solid var(--border); padding:1rem; border-radius:8px; margin-bottom:1rem;">
+              <p><strong>Review Cleanup:</strong> ${t.id}</p>
+              <p style="font-size:0.8rem; color:var(--text-muted);">🕒 Uploaded At: ${t.uploadedAt}</p>
+              <div class="compare-box">
+                <div>
+                  <span style="font-size:0.75rem; font-weight:700;">BEFORE (User Pin)</span>
+                  <img src="${t.beforeImg}">
+                </div>
+                <div>
+                  <span style="font-size:0.75rem; font-weight:700;">AFTER (Cleaner)</span>
+                  <img src="${t.afterImg}">
+                </div>
+              </div>
+              <button class="btn" style="width:100%; margin-top:1rem; background:var(--primary);" onclick="verifyAndAllocatePoints('${t.id}')">
+                ✔ Verify & Distribute Points (5 User / 20 Cleaner)
+              </button>
+            </div>
+          `;
+        });
+      }
+
+      renderHistoryTable('supervisor-history-table');
+    }
+
+    function assignTaskToCleaner(taskId) {
+      const cleanerId = document.getElementById(`cleaner-select-${taskId}`).value;
+      const task = db.tasks.find(t => t.id === taskId);
+      const selectedCleaner = db.cleaners.find(c => c.id === cleanerId);
+
+      task.status = 'Assigned';
+      task.assignedCleaner = selectedCleaner.name;
+      saveDB();
+      alert(`Task ${taskId} assigned to ${selectedCleaner.name}! Location shared.`);
+      renderSupervisorPanel();
+    }
+
+    function verifyAndAllocatePoints(taskId) {
+      const task = db.tasks.find(t => t.id === taskId);
+      task.status = 'Verified';
+      task.userPointsAwarded = true;
+      task.cleanerPointsAwarded = true;
+
+      const user = db.users.find(u => u.id === task.userId);
+      if (user) user.points += 5;
+
+      saveDB();
+      alert(`Job verified! 5 Points awarded to Citizen (${task.userName}) & 20 Points logged for Cleaner.`);
+      renderSupervisorPanel();
+    }
+
+    /* ===================================================================
+       10. CLEANER PANEL
+       =================================================================== */
+    function renderCleanerPanel() {
+      const rosterTbody = document.getElementById('cleaners-roster-table');
+      rosterTbody.innerHTML = '';
+      db.cleaners.forEach(c => {
+        rosterTbody.innerHTML += `
+          <tr>
+            <td><strong style="font-family:monospace; color:var(--primary);">${c.id}</strong></td>
+            <td>${c.name}</td>
+            <td>${c.region}</td>
+            <td><span class="badge badge-completed">ACTIVE STAFF</span></td>
+          </tr>
+        `;
+      });
+
+      const container = document.getElementById('cleaner-task-list');
+      container.innerHTML = '';
+
+      const assignedTasks = db.tasks.filter(t => t.status === 'Assigned' || t.status === 'Cleaning Completed');
+      if (assignedTasks.length === 0) {
+        container.innerHTML = `<p style="color:var(--text-muted);">No active cleaner orders assigned.</p>`;
+      } else {
+        assignedTasks.forEach(t => {
+          const cleanerMapId = `cln-map-${t.id}`;
+          const gmapsNavigationUrl = `https://www.google.com/maps/dir/?api=1&destination=${t.coords.lat},${t.coords.lng}`;
+
+          container.innerHTML += `
+            <div style="border:1px solid var(--border); padding:1rem; border-radius:8px; margin-bottom:1rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                <h4>Order ID: ${t.id}</h4>
+                <span class="badge ${t.status === 'Cleaning Completed' ? 'badge-completed' : 'badge-assigned'}">${t.status}</span>
+              </div>
+              <p style="margin-top:0.5rem; font-size:0.85rem; color:var(--text-muted);">🕒 User Uploaded At: ${t.uploadedAt}</p>
+              <p style="font-size:0.85rem; color:var(--primary); font-weight:600; margin-top:2px;">👤 Assigned Staff: ${t.assignedCleaner}</p>
+              <p style="font-size:0.85rem; color:var(--accent); margin-top:2px; word-break:break-all;">📍 <strong>Pin Location:</strong> ${t.coords.lat}, ${t.coords.lng}</p>
+              
+              <div id="${cleanerMapId}" class="mini-map"></div>
+              
+              <a href="${gmapsNavigationUrl}" target="_blank" class="btn btn-accent" style="width:100%; font-size:0.85rem; margin-bottom:1rem;">
+                🧭 Start Navigation to Site
+              </a>
+
+              ${t.status === 'Assigned' ? `
+                <div style="margin-top:0.5rem; background:#f8fafc; padding:1rem; border-radius:6px;">
+                  <label style="font-size:0.85rem; font-weight:600;">Upload Work Completion Photo:</label>
+                  <input type="file" id="cleaner-file-${t.id}" accept="image/*" style="margin-top:0.5rem; display:block; width:100%;">
+                  <button class="btn" style="margin-top:0.75rem; width:100%;" onclick="submitCleanerWork('${t.id}')">Submit Completed Work</button>
+                </div>
+              ` : `<p style="font-size:0.85rem; color:var(--primary); font-weight:600; margin-top:0.5rem;">✔ Work submitted. Pending Supervisor audit.</p>`}
+            </div>
+          `;
+
+          renderTaskMiniMap(cleanerMapId, t.coords.lat, t.coords.lng, `Cleanup Site: ${t.id}`);
+        });
+      }
+
+      renderHistoryTable('cleaner-history-table');
+    }
+
+    function submitCleanerWork(taskId) {
+      const fileInput = document.getElementById(`cleaner-file-${taskId}`);
+      if (!fileInput.files[0]) {
+        alert('Please attach an after-cleaning photo.');
+        return;
+      }
+
+      compressImageFile(fileInput.files[0], function(compressedBase64) {
+        const task = db.tasks.find(t => t.id === taskId);
+        task.afterImg = compressedBase64;
+        task.status = 'Cleaning Completed';
+        saveDB();
+        alert(`Completion proof submitted for ${taskId}! Sent to Supervisor for audit.`);
+        renderCleanerPanel();
+      });
+    }
+
+    /* ===================================================================
+       11. SUPERMAIN PANEL & HISTORY AUDIT ENGINE
+       =================================================================== */
+    function renderSuperAdminPanel() {
+      document.getElementById('stat-total-reports').innerText = db.tasks.length;
+      document.getElementById('stat-completed').innerText = db.tasks.filter(t => t.status === 'Verified').length;
+      document.getElementById('stat-user-points').innerText = db.tasks.filter(t => t.userPointsAwarded).length * 5;
+      document.getElementById('stat-cleaner-points').innerText = db.tasks.filter(t => t.cleanerPointsAwarded).length * 20;
+
+      const tbody = document.getElementById('admin-audit-table');
+      tbody.innerHTML = '';
+
+      if (db.tasks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No system activities logged yet.</td></tr>`;
+      } else {
+        db.tasks.forEach(t => {
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${t.id}</strong></td>
+              <td>${t.userName} (${t.userPointsAwarded ? '5 pts' : '0 pts'})</td>
+              <td>${t.uploadedAt || 'N/A'}</td>
+              <td style="font-family:monospace; font-size:0.8rem;">${t.coords.lat}, ${t.coords.lng}</td>
+              <td>${t.assignedCleaner || 'Unassigned'}</td>
+              <td><span class="badge ${t.status === 'Verified' ? 'badge-completed' : 'badge-pending'}">${t.status}</span></td>
+            </tr>
+          `;
+        });
+      }
+
+      renderHistoryTable('admin-history-table');
+    }
+
+    /* ===================================================================
+       12. PERMANENT WORK HISTORY RENDERER (SMALL PRINT DETAILS)
+       =================================================================== */
+    function renderHistoryTable(tableElementId) {
+      const historyTbody = document.getElementById(tableElementId);
+      if(!historyTbody) return;
+
+      historyTbody.innerHTML = '';
+
+      const verifiedTasks = db.tasks.filter(t => t.status === 'Verified' || t.status === 'Cleaning Completed');
+
+      if (verifiedTasks.length === 0) {
+        historyTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); font-size:0.75rem;">No archived work history records found yet.</td></tr>`;
+        return;
+      }
+
+      verifiedTasks.forEach(t => {
+        historyTbody.innerHTML += `
+          <tr>
+            <td><strong>${t.id}</strong></td>
+            <td>${t.userName} (${t.userId})</td>
+            <td>${t.assignedCleaner || 'N/A'}</td>
+            <td>${t.coords.lat}, ${t.coords.lng}</td>
+            <td>${t.uploadedAt}</td>
+            <td>+5 Pts User | +20 Pts Cleaner</td>
+            <td><span class="badge badge-completed" style="font-size:0.65rem;">${t.status}</span></td>
+          </tr>
+        `;
+      });
+    }
+  </script>
+</body>
+</html>
